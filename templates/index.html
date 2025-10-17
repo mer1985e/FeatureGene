@@ -28,14 +28,34 @@
   </section>
 
   <section>
-    <h3>GA Parameters</h3>
-    <label>Population: <input id="popSize" type="number" value="30"></label>
-    <label>Crossover: <input id="crossRate" type="number" value="0.7" step="0.05"></label>
-    <label>Mutation: <input id="mutRate" type="number" value="0.1" step="0.01"></label>
-    <label>Max Generations: <input id="maxGen" type="number" value="20"></label>
-    <label>Convergence Threshold: (leave empty if no need it)<input id="convergenceThreshold" type="number" value="" step="0.0001"></label>
-    <button onclick="runGA()">Run GA</button>
-    <p style="font-size: 0.9em; color: #666;">Note: Algorithm stops when relative improvement falls below the convergence threshold or max generations is reached.</p>
+    <h3>Feature Selection Methods</h3>
+    
+    <div style="border: 1px solid #ddd; padding: 1rem; margin: 0.5rem 0;">
+      <h4>Genetic Algorithm Parameters</h4>
+      <label>Population: <input id="popSize" type="number" value="30"></label>
+      <label>Crossover: <input id="crossRate" type="number" value="0.7" step="0.05"></label>
+      <label>Mutation: <input id="mutRate" type="number" value="0.1" step="0.01"></label>
+      <label>Max Generations: <input id="maxGen" type="number" value="20"></label>
+      <label>Convergence Threshold: (leave empty if no need it)<input id="convergenceThreshold" type="number" value="" step="0.0001"></label>
+      <button onclick="runGA()">Run GA Only</button>
+      <p style="font-size: 0.9em; color: #666;">Note: Algorithm stops when relative improvement falls below the convergence threshold or max generations is reached.</p>
+    </div>
+
+    <div style="border: 1px solid #ddd; padding: 1rem; margin: 0.5rem 0;">
+      <h4>VarianceThreshold Parameters</h4>
+      <label>Variance Threshold: <input id="vtThreshold" type="number" value="0.0" step="0.01"></label>
+      <button onclick="runVarianceThreshold()">Run VarianceThreshold Only</button>
+      <p style="font-size: 0.9em; color: #666;">
+        Removes features with variance below threshold. Default 0.0 removes zero-variance features.<br>
+        For boolean features, use p*(1-p) where p is the probability (e.g., 0.8*(1-0.8)=0.16 for 80% threshold).
+      </p>
+    </div>
+
+    <div style="border: 2px solid #2563eb; padding: 1rem; margin: 0.5rem 0; background: #f8faff;">
+      <h4>🔍 Compare Both Methods</h4>
+      <button onclick="runComparison()" style="background: #2563eb; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;">Run GA vs VarianceThreshold Comparison</button>
+      <p style="font-size: 0.9em; color: #666;">Compare the performance of both feature selection methods side by side.</p>
+    </div>
   </section>
 
   <section>
@@ -142,6 +162,180 @@
           datasets: [{ label: "Best Fitness", data: data.history, borderColor: "#2563eb", fill: false }]
         },
         options: { responsive: true, animation: false }
+      });
+    }
+
+    async function runVarianceThreshold() {
+      if (!csvData) {
+        alert("Please upload a CSV first!");
+        return;
+      }
+
+      const targetColumn = document.getElementById('targetColumn').value;
+      if (!targetColumn && targetColumn !== "0") {
+        alert("Please specify the target column!");
+        return;
+      }
+
+      const vtThreshold = document.getElementById('vtThreshold').value;
+      const idColumn = document.getElementById('idColumn').value;
+
+      document.getElementById("status").textContent = "Running VarianceThreshold...";
+
+      const requestBody = {
+        csvData,
+        threshold: parseFloat(vtThreshold),
+        idColumn: idColumn === "" ? null : parseInt(idColumn),
+        targetColumn: parseInt(targetColumn)
+      };
+
+      const res = await fetch("/run_variance_threshold", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById("status").textContent = `❌ Error: ${data.error}`;
+        return;
+      }
+
+      const idInfo = data.idColumn ? `ID Column: ${data.idColumn}\n` : `No ID column\n`;
+      document.getElementById("status").textContent =
+        `✅ VarianceThreshold Complete!\n${idInfo}Target Column: ${data.target}\n` +
+        `Threshold Used: ${data.thresholdUsed}\n` +
+        `Accuracy: ${data.accuracy}\n` +
+        `Exec Time: ${data.execTimeSeconds}s\n` +
+        `Selected features: ${data.numFeaturesSelected} out of ${data.numFeaturesTotal}\n` +
+        `Selected: ${data.selectedFeatures.join(", ")}\n` +
+        `Removed: ${data.removedFeatures.join(", ")}\n` +
+        `Total features: ${data.numFeaturesTotal}, Rows: ${data.rows}`;
+
+      // Clear chart for VarianceThreshold (no progression to show)
+      const ctx = document.getElementById("chart");
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Selected Features", "Removed Features"],
+          datasets: [{
+            label: "Feature Count",
+            data: [data.numFeaturesSelected, data.removedFeatures.length],
+            backgroundColor: ["#10b981", "#ef4444"]
+          }]
+        },
+        options: { responsive: true, animation: false }
+      });
+    }
+
+    async function runComparison() {
+      if (!csvData) {
+        alert("Please upload a CSV first!");
+        return;
+      }
+
+      const targetColumn = document.getElementById('targetColumn').value;
+      if (!targetColumn && targetColumn !== "0") {
+        alert("Please specify the target column!");
+        return;
+      }
+
+      // Get all parameters
+      const popSize = document.getElementById('popSize').value;
+      const crossRate = document.getElementById('crossRate').value;
+      const mutRate = document.getElementById('mutRate').value;
+      const maxGen = document.getElementById('maxGen').value;
+      const convergenceThreshold = document.getElementById('convergenceThreshold').value;
+      const vtThreshold = document.getElementById('vtThreshold').value;
+      const idColumn = document.getElementById('idColumn').value;
+
+      document.getElementById("status").textContent = "Running comparison (GA vs VarianceThreshold)...";
+
+      const requestBody = {
+        popSize, 
+        crossRate, 
+        mutRate, 
+        maxGen, 
+        vtThreshold: parseFloat(vtThreshold),
+        csvData,
+        idColumn: idColumn === "" ? null : parseInt(idColumn),
+        targetColumn: parseInt(targetColumn)
+      };
+      
+      if (convergenceThreshold !== "") {
+        requestBody.convergenceThreshold = parseFloat(convergenceThreshold);
+      }
+
+      const res = await fetch("/run_comparison", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById("status").textContent = `❌ Error: ${data.error}`;
+        return;
+      }
+
+      // Display comparison results
+      const idInfo = data.dataset.idColumn ? `ID Column: ${data.dataset.idColumn}\n` : `No ID column\n`;
+      const gaConvergence = data.ga.converged ? `Converged at generation ${data.ga.generations}` : `Completed ${data.ga.generations} generations (max reached)`;
+      
+      document.getElementById("status").textContent =
+        `🔍 COMPARISON RESULTS\n${idInfo}Target Column: ${data.dataset.target}\n` +
+        `Dataset: ${data.dataset.numFeaturesTotal} features, ${data.dataset.rows} rows\n\n` +
+        `🧬 GENETIC ALGORITHM:\n` +
+        `  ${gaConvergence}\n` +
+        `  Accuracy: ${data.ga.accuracy}\n` +
+        `  Exec Time: ${data.ga.execTimeSeconds}s\n` +
+        `  Selected: ${data.ga.numFeaturesSelected} features\n` +
+        `  Features: ${data.ga.selectedFeatures.join(", ")}\n\n` +
+        `📊 VARIANCE THRESHOLD:\n` +
+        `  Threshold: ${data.varianceThreshold.thresholdUsed}\n` +
+        `  Accuracy: ${data.varianceThreshold.accuracy}\n` +
+        `  Exec Time: ${data.varianceThreshold.execTimeSeconds}s\n` +
+        `  Selected: ${data.varianceThreshold.numFeaturesSelected} features\n` +
+        `  Features: ${data.varianceThreshold.selectedFeatures.join(", ")}\n` +
+        `  Removed: ${data.varianceThreshold.removedFeatures.join(", ")}\n\n` +
+        `🏆 WINNER: ${data.ga.accuracy > data.varianceThreshold.accuracy ? 'Genetic Algorithm' : 
+                     data.varianceThreshold.accuracy > data.ga.accuracy ? 'VarianceThreshold' : 'Tie'} ` +
+        `(${Math.max(data.ga.accuracy, data.varianceThreshold.accuracy)})`;
+
+      // Show comparison chart
+      const ctx = document.getElementById("chart");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.ga.history.map((_, i) => i + 1),
+          datasets: [
+            { 
+              label: "GA Fitness Progress", 
+              data: data.ga.history, 
+              borderColor: "#2563eb", 
+              fill: false 
+            },
+            {
+              label: "VarianceThreshold Accuracy",
+              data: Array(data.ga.history.length).fill(data.varianceThreshold.accuracy),
+              borderColor: "#dc2626",
+              borderDash: [5, 5],
+              fill: false
+            }
+          ]
+        },
+        options: { 
+          responsive: true, 
+          animation: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 1
+            }
+          }
+        }
       });
     }
   </script>
