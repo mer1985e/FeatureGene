@@ -13,7 +13,11 @@ app = Flask(__name__)
 
 # ---------- GA Core ----------
 def create_random_chromosome(feature_count, true_ratio=0.3):
-    pass
+    n_true = int(feature_count * true_ratio)
+    n_false = feature_count - n_true
+    chromosome = [1] * n_true + [0] * n_false
+    random.shuffle(chromosome)
+    return chromosome
 
 
 def initialize_population(pop_size, feature_count, true_ratio=0.7):
