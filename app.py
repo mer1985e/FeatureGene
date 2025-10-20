@@ -20,8 +20,10 @@ def create_random_chromosome(feature_count, true_ratio=0.3):
     return chromosome
 
 
+
 def initialize_population(pop_size, feature_count, true_ratio=0.7):
-    pass
+    return [create_random_chromosome(feature_count, true_ratio) for _ in range(pop_size)]
+
 
 
 def evaluate_fitness(chromosome, X_train, X_test, y_train, y_test):
