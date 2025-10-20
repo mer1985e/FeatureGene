@@ -1,0 +1,43 @@
+<div class="parameter-group">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        Genetic Algorithm
+    </h3>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="parameter-label" for="popSize">Population</label>
+            <input type="number" id="popSize" class="parameter-input" value="30" min="2" max="1000" data-tooltip="Number of individuals in each generation">
+        </div>
+        
+        <div>
+            <label class="parameter-label" for="crossRate">Crossover</label>
+            <input type="number" id="crossRate" class="parameter-input" value="0.7" step="0.05" min="0" max="1" data-tooltip="Probability of crossover between parents">
+        </div>
+        
+        <div>
+            <label class="parameter-label" for="mutRate">Mutation</label>
+            <input type="number" id="mutRate" class="parameter-input" value="0.1" step="0.01" min="0" max="1" data-tooltip="Probability of gene mutation">
+        </div>
+        
+        <div>
+            <label class="parameter-label" for="maxGen">Max Generations</label>
+            <input type="number" id="maxGen" class="parameter-input" value="20" min="1" max="1000" data-tooltip="Maximum number of generations">
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <label class="parameter-label" for="convergenceThreshold">Convergence Threshold (optional)</label>
+        <input type="number" id="convergenceThreshold" class="parameter-input" value="" step="0.0001" min="0" data-tooltip="Stop when improvement falls below this threshold">
+        <p class="parameter-help">Leave empty to run for max generations</p>
+    </div>
+    
+    <button onclick="runGA()" class="btn btn-primary w-full mt-4">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Run GA Only
+    </button>
+</div>

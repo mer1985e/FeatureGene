@@ -4,7 +4,8 @@ venv/
 env/
 
 # Node modules
-*node_modules/*
+node_modules/
+
 
 # Python cache
 __pycache__/
