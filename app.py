@@ -89,9 +89,17 @@ def load_and_preprocess_csv(csv_content, target_column_idx, id_column_idx=None):
             return None, "Not enough valid data rows after cleaning"
 
         # Split data into train/test sets.
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.3, random_state=42, stratify=y
-        )
+        # Check that each class has at least 2 samples for stratification
+        unique_classes, class_counts = np.unique(y, return_counts=True)
+        if np.all(class_counts >= 2):
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.3, random_state=42, stratify=y
+            )
+        else:
+            # Not enough samples per class for stratification; fall back to non-stratified split
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.3, random_state=42
+            )
 
         feature_headers = list(feature_columns)
         target_header = target_column
