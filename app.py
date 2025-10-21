@@ -39,7 +39,68 @@ def mutate(chromosome, rate):
 
 
 def load_and_preprocess_csv(csv_content, target_column_idx, id_column_idx=None):
-    pass
+    """
+    Loads and preprocesses CSV data for GA feature selection.
+
+    Args:
+        csv_content: String containing CSV data.
+        target_column_idx: Index of the target column.
+        id_column_idx: Optional index of ID column to exclude from features.
+
+    Returns:
+        tuple: (X_train, X_test, y_train, y_test, feature_headers, target_header, df)
+        or (None, error_message) if an error occurs.
+    """
+    try:
+        # Parse CSV data.
+        df = pd.read_csv(io.StringIO(csv_content))
+
+        # Remove any empty rows and columns.
+        df = df.dropna(how='all')
+        df = df.dropna(axis=1, how='all')
+
+        # Validate column indices.
+        if target_column_idx >= len(df.columns) or target_column_idx < 0:
+            return None, f"Invalid target column index: {target_column_idx}. Dataset has {len(df.columns)} columns (0-{len(df.columns)-1})"
+
+        if id_column_idx is not None and (id_column_idx >= len(df.columns) or id_column_idx < 0):
+            return None, f"Invalid ID column index: {id_column_idx}. Dataset has {len(df.columns)} columns (0-{len(df.columns)-1})"
+
+        # Determine which columns are features (exclude ID and target).
+        columns_to_exclude = [target_column_idx]
+        if id_column_idx is not None:
+            columns_to_exclude.append(id_column_idx)
+
+        feature_column_indices = [i for i in range(len(df.columns)) if i not in columns_to_exclude]
+        feature_columns = df.columns[feature_column_indices]
+        target_column = df.columns[target_column_idx]
+
+        # Extract features and target.
+        X = df[feature_columns].values
+        y = df[target_column].values
+
+        # Handle missing values by dropping rows with NaN.
+        mask = ~(pd.isna(X).any(axis=1) | pd.isna(y))
+        X = X[mask]
+        y = y[mask]
+
+        # Check if we have enough data after cleaning.
+        if len(X) < 2:
+            return None, "Not enough valid data rows after cleaning"
+
+        # Split data into train/test sets.
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.3, random_state=42, stratify=y
+        )
+
+        feature_headers = list(feature_columns)
+        target_header = target_column
+
+        return (X_train, X_test, y_train, y_test, feature_headers, target_header, df), None
+
+    except Exception as e:
+        return None, f"Error processing CSV: {str(e)}"
+
 
 def run_ga_feature_selection(
     X_train,
@@ -160,7 +221,7 @@ def index():
 def run_ga():
     """
     Main endpoint to run the Genetic Algorithm for feature selection.
-    
+
     This function is already implemented for you. Study it to understand
     how all the GA components work together.
     """
@@ -173,11 +234,11 @@ def run_ga():
     if convergence_threshold is not None:
         convergence_threshold = float(data.get("convergenceThreshold"))
     csv_content = data.get("csvData", "")
-    
+
     # Get user-specified column indices
     id_column_idx = data.get("idColumn")  # Can be None if no ID column
     target_column_idx = data.get("targetColumn")  # Required
-    
+
     if target_column_idx is None:
         return jsonify({"error": "Target column must be specified"})
 
@@ -185,7 +246,7 @@ def run_ga():
     result, error = load_and_preprocess_csv(csv_content, target_column_idx, id_column_idx)
     if error:
         return jsonify({"error": error})
-    
+
     X_train, X_test, y_train, y_test, feature_headers, target_header, df = result
     feature_count = len(feature_headers)
 
@@ -201,7 +262,7 @@ def run_ga():
         max_gen,
         convergence_threshold,
     )
-    
+
     # Prepare response
     response = {
         "bestFitness": round(ga["best_fitness"], 4),
@@ -214,11 +275,11 @@ def run_ga():
         "generations": len(ga["history"]),
         "converged": ga["converged"]
     }
-    
+
     # Add ID column name if specified
     if id_column_idx is not None:
         response["idColumn"] = df.columns[id_column_idx]
-    
+
     return jsonify(response)
 
 @app.route("/run_variance_threshold", methods=["POST"])
