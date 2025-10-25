@@ -31,7 +31,10 @@ def evaluate_fitness(chromosome, X_train, X_test, y_train, y_test):
 
 
 def crossover(p1, p2, rate):
-    pass
+    if random.random() > rate:
+        return p1[:], p2[:]
+    point = random.randint(1, len(p1) - 1)
+    return p1[:point] + p2[point:], p2[:point] + p1[point:]
 
 
 def mutate(chromosome, rate):
