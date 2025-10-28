@@ -38,7 +38,8 @@ def crossover(p1, p2, rate):
 
 
 def mutate(chromosome, rate):
-    pass
+    return [1 - g if random.random() < rate else g for g in chromosome]
+
 
 
 def load_and_preprocess_csv(csv_content, target_column_idx, id_column_idx=None):
