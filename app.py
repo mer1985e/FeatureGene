@@ -418,6 +418,37 @@ def run_comparison():
         response["dataset"]["idColumn"] = df.columns[id_column_idx]
 
     return jsonify(response)
+from sklearn.feature_selection import SelectKBest, f_classif
+
+def compare_ga_with_statistical(csv_content, target_column_idx, id_column_idx=None):
+
+    result, error = load_and_preprocess_csv(csv_content, target_column_idx, id_column_idx)
+    if error:
+        return {"error": error}
+
+    X_train, X_test, y_train, y_test, feature_headers, target_header, df = result
+
+    population = initialize_population(pop_size=10, feature_count=len(feature_headers))
+    ga_fitness_scores = [evaluate_fitness(ch, X_train, X_test, y_train, y_test) for ch in population]
+    ga_best_score = max(ga_fitness_scores)
+
+    k = max(1, len(feature_headers) // 2)
+    selector = SelectKBest(score_func=f_classif, k=k)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+
+    model = LogisticRegression(max_iter=500)
+    model.fit(X_train_selected, y_train)
+    kbest_score = accuracy_score(y_test, model.predict(X_test_selected))
+
+    comparison = {
+        "GA_Best_Fitness": round(ga_best_score, 4),
+        "SelectKBest_Accuracy": round(kbest_score, 4),
+        "Winner": "Genetic Algorithm" if ga_best_score > kbest_score else "Traditional Statistical Method"
+    }
+
+    return comparison
+
 
 if __name__ == "__main__":
     app.run(debug=True)
